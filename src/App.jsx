@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import {
+  createCard,
+  createFolder as createFolderInFirestore,
+  listCards,
+  listFolders,
+  removeCard,
+  removeFolder,
+  reviewCard as updateReviewCard,
+  updateCard as updateCardInFirestore,
+} from "./firestoreService";
 
 export default function App() {
   const [word, setWord] = useState("");
@@ -8,6 +18,8 @@ export default function App() {
   const [activeFolder, setActiveFolder] = useState(null);
   const [cards, setCards] = useState([]);
   const [reviewCard, setReviewCard] = useState(null);
+  const [reviewAnswer, setReviewAnswer] = useState("");
+  const [showReviewAnswer, setShowReviewAnswer] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -38,11 +50,11 @@ export default function App() {
   const loadFolders = async () => {
     try {
       setError(null);
-      const res = await axios.get(`${API_URL}/folders`);
-      setFolders(res.data);
+      const data = await listFolders();
+      setFolders(data);
       
-      if (res.data.length > 0 && !activeFolder) {
-        setActiveFolder(res.data[0]._id);
+      if (data.length > 0 && !activeFolder) {
+        setActiveFolder(data[0]._id);
       }
     } catch (err) {
       setError("Failed to load folders: " + err.message);
@@ -54,8 +66,7 @@ export default function App() {
     if (!activeFolder) return;
     try {
       setError(null);
-      const res = await axios.get(`${API_URL}/cards/${activeFolder}`);
-      setCards(res.data);
+      setCards(await listCards(activeFolder));
     } catch (err) {
       setError("Failed to load cards: " + err.message);
       console.error(err);
@@ -79,7 +90,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      await axios.post(`${API_URL}/folders`, { name: newFolderName });
+      await createFolderInFirestore(newFolderName);
       setNewFolderName("");
       setShowNewFolder(false);
       await loadFolders();
@@ -101,7 +112,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      await axios.delete(`${API_URL}/folders/${folderId}`);
+      await removeFolder(folderId);
       
       // If deleted folder was active, clear selection
       if (activeFolder === folderId) {
@@ -150,7 +161,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      await axios.post(`${API_URL}/api/save`, {
+      await createCard({
         ...result,
         folderId: activeFolder
       });
@@ -186,7 +197,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      await axios.put(`${API_URL}/api/cards/${selectedCard._id}`, editForm);
+      await updateCardInFirestore(selectedCard._id, editForm);
       await loadCards();
       setSelectedCard(null);
       setIsEditing(false);
@@ -209,7 +220,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      await axios.delete(`${API_URL}/api/cards/${cardId}`);
+      await removeCard(cardId);
       await loadCards();
       setSelectedCard(null);
     } catch (err) {
@@ -230,15 +241,14 @@ export default function App() {
       return;
     }
     setReviewCard(due[0]);
+    setReviewAnswer("");
+    setShowReviewAnswer(false);
   };
 
   const review = async (rating) => {
     try {
       setLoading(true);
-      await axios.post(`${API_URL}/review`, {
-        id: reviewCard._id,
-        rating
-      });
+      await updateReviewCard(reviewCard._id, rating, reviewCard);
       await loadCards();
       setReviewCard(null);
     } catch (err) {
@@ -472,8 +482,8 @@ export default function App() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {cards.map(card => (
-                  <div 
-                    key={card._id} 
+                  <div
+                    key={card._id}
                     className="p-3 sm:p-4 border rounded-lg bg-white shadow hover:shadow-lg transition cursor-pointer"
                     onClick={() => viewCard(card)}
                   >
@@ -671,20 +681,65 @@ export default function App() {
       {reviewCard && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 sm:p-8 rounded-lg shadow-2xl w-full max-w-md">
-            <h2 className="text-xl sm:text-2xl font-bold mb-2 text-blue-700">{reviewCard.word}</h2>
-            <p className="text-sm sm:text-base text-gray-700 mb-2">{reviewCard.pronunciation}</p>
-            <p className="text-sm sm:text-base text-gray-800 mb-4">{reviewCard.meaning}</p>
-            
-            {reviewCard.examples && reviewCard.examples.length > 0 && (
-              <div className="mb-6 text-xs sm:text-sm text-gray-600">
-                <p className="font-semibold mb-1">Example:</p>
-                <p className="italic">{reviewCard.examples[0]}</p>
+            <div className="flex items-start justify-between border-b pb-3 mb-5">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">Review</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-blue-700">
+                  {reviewCard.word}
+                  <span className="font-normal text-gray-600"> /{(reviewCard.pronunciation || "N/A").replace(/^\/|\/$/g, "")}/</span>
+                </h2>
               </div>
-            )}
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+                onClick={() => setReviewCard(null)}
+                aria-label="Close review"
+              >
+                ×
+              </button>
+            </div>
 
-            <p className="text-xs sm:text-sm text-gray-500 mb-4">How well did you know this?</p>
+            <p className="text-sm sm:text-base text-gray-600 mb-2">
+              Type Answer <span className="text-gray-400">(optional)</span>
+            </p>
+            <input
+              type="text"
+              value={reviewAnswer}
+              onChange={(e) => setReviewAnswer(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && setShowReviewAnswer(true)}
+              placeholder="Your answer..."
+              className="w-full p-3 border rounded mb-5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              autoFocus
+            />
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            {!showReviewAnswer ? (
+              <button
+                type="button"
+                className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition"
+                onClick={() => setShowReviewAnswer(true)}
+              >
+                Check answer
+              </button>
+            ) : (
+              <>
+                <div className="bg-blue-50 border border-blue-100 rounded p-4 mb-5 text-sm sm:text-base">
+                  <p><span className="font-semibold">Pronunciation:</span> {reviewCard.pronunciation}</p>
+                  <p className="mt-2"><span className="font-semibold">Meaning:</span> {reviewCard.meaning}</p>
+                  <p className="mt-2"><span className="font-semibold">Synonyms:</span> {reviewCard.synonyms}</p>
+                  {reviewCard.examples?.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-semibold">Examples:</p>
+                      <ul className="list-disc ml-5 mt-1 space-y-1">
+                        {reviewCard.examples.map((example, index) => (
+                          <li key={index}>{example}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-sm text-gray-500 mb-3">How well did you know this?</p>
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <button 
                 className="bg-red-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-red-600 transition text-sm sm:text-base"
                 onClick={() => review("again")}
@@ -713,7 +768,9 @@ export default function App() {
               >
                 Easy
               </button>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
