@@ -22,15 +22,15 @@ export default function App() {
   const [showReviewAnswer, setShowReviewAnswer] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // New folder creation
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [deletingFolder, setDeletingFolder] = useState(null);
-  
+
   // Mobile sidebar toggle
   const [showSidebar, setShowSidebar] = useState(false);
-  
+
   // Flashcard detail/edit modal
   const [selectedCard, setSelectedCard] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -52,7 +52,7 @@ export default function App() {
       setError(null);
       const data = await listFolders();
       setFolders(data);
-      
+
       if (data.length > 0 && !activeFolder) {
         setActiveFolder(data[0]._id);
       }
@@ -86,7 +86,7 @@ export default function App() {
   // =============================
   const createFolder = async () => {
     if (!newFolderName.trim()) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -108,18 +108,18 @@ export default function App() {
     if (!window.confirm(`Delete folder "${folderName}" and all its flashcards? This cannot be undone!`)) {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
       await removeFolder(folderId);
-      
+
       // If deleted folder was active, clear selection
       if (activeFolder === folderId) {
         setActiveFolder(null);
         setCards([]);
       }
-      
+
       await loadFolders();
     } catch (err) {
       setError("Failed to delete folder: " + err.message);
@@ -134,7 +134,7 @@ export default function App() {
   // =============================
   const generate = async () => {
     if (!word.trim()) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -157,7 +157,7 @@ export default function App() {
       setError("Please select a folder first");
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -216,7 +216,7 @@ export default function App() {
     if (!window.confirm("Are you sure you want to delete this flashcard?")) {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -295,7 +295,7 @@ export default function App() {
       `}>
         <div className="flex items-center justify-between mb-4 mt-12 lg:mt-0">
           <h2 className="text-xl font-bold">Folders</h2>
-          <button 
+          <button
             onClick={() => setShowNewFolder(!showNewFolder)}
             className="text-blue-600 hover:text-blue-800 text-2xl font-bold"
             title="Add folder"
@@ -315,14 +315,14 @@ export default function App() {
               autoFocus
             />
             <div className="flex gap-2">
-              <button 
+              <button
                 className="flex-1 bg-blue-600 text-white px-2 py-1 rounded text-sm"
                 onClick={createFolder}
                 disabled={loading}
               >
                 Create
               </button>
-              <button 
+              <button
                 className="flex-1 bg-gray-300 px-2 py-1 rounded text-sm"
                 onClick={() => {
                   setShowNewFolder(false);
@@ -341,11 +341,10 @@ export default function App() {
           folders.map(f => (
             <div
               key={f._id}
-              className={`group relative p-2 rounded cursor-pointer hover:bg-blue-50 transition mb-1 ${
-                activeFolder === f._id ? "bg-blue-100 border-l-4 border-blue-600" : ""
-              }`}
+              className={`group relative p-2 rounded cursor-pointer hover:bg-blue-50 transition mb-1 ${activeFolder === f._id ? "bg-blue-100 border-l-4 border-blue-600" : ""
+                }`}
             >
-              <div 
+              <div
                 className="flex items-center justify-between"
                 onClick={() => {
                   setActiveFolder(f._id);
@@ -371,7 +370,7 @@ export default function App() {
 
       {/* -------------- MOBILE OVERLAY -------------- */}
       {showSidebar && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={() => setShowSidebar(false)}
         />
@@ -385,8 +384,8 @@ export default function App() {
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
             {error}
-            <button 
-              onClick={() => setError(null)} 
+            <button
+              onClick={() => setError(null)}
               className="float-right font-bold"
             >
               ×
@@ -414,7 +413,7 @@ export default function App() {
                 onKeyPress={(e) => e.key === 'Enter' && generate()}
                 disabled={loading}
               />
-              <button 
+              <button
                 className="bg-blue-600 text-white px-6 py-3 rounded shadow hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap"
                 onClick={generate}
                 disabled={loading || !word.trim()}
@@ -427,14 +426,14 @@ export default function App() {
               <div className="p-4 sm:p-6 border rounded-lg mb-6 bg-white shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <b className="text-xl sm:text-2xl text-blue-700">{result.word}</b>
-                  <button 
+                  <button
                     onClick={() => setResult(null)}
                     className="text-gray-400 hover:text-gray-600 text-xl"
                   >
                     ×
                   </button>
                 </div>
-                
+
                 <div className="space-y-2 mb-4 text-sm sm:text-base">
                   <p><span className="font-semibold">Pronunciation:</span> {result.pronunciation}</p>
                   <p><span className="font-semibold">Meaning:</span> {result.meaning}</p>
@@ -488,7 +487,7 @@ export default function App() {
                     onClick={() => viewCard(card)}
                   >
                     <b className="text-base sm:text-lg text-blue-700">{card.word}</b>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-2 line-clamp-2">{card.meaning}</p>
+                    {/* <p className="text-xs sm:text-sm text-gray-600 mt-2 line-clamp-2">{card.meaning}</p> */}
                     <div className="mt-2 sm:mt-3 text-xs text-gray-400">
                       Next review: {new Date(card.nextReview).toLocaleDateString()}
                     </div>
@@ -504,13 +503,13 @@ export default function App() {
       {selectedCard && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white p-4 sm:p-6 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            
+
             {!isEditing ? (
               // VIEW MODE
               <>
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-2xl sm:text-3xl font-bold text-blue-700 pr-4">{selectedCard.word}</h2>
-                  <button 
+                  <button
                     onClick={() => setSelectedCard(null)}
                     className="text-gray-400 hover:text-gray-600 text-2xl flex-shrink-0"
                   >
@@ -577,7 +576,7 @@ export default function App() {
               <>
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-xl sm:text-2xl font-bold">Edit Flashcard</h2>
-                  <button 
+                  <button
                     onClick={() => setIsEditing(false)}
                     className="text-gray-400 hover:text-gray-600 text-2xl"
                   >
@@ -740,34 +739,34 @@ export default function App() {
 
                 <p className="text-sm text-gray-500 mb-3">How well did you know this?</p>
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <button 
-                className="bg-red-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-red-600 transition text-sm sm:text-base"
-                onClick={() => review("again")}
-                disabled={loading}
-              >
-                Again
-              </button>
-              <button 
-                className="bg-yellow-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-yellow-600 transition text-sm sm:text-base"
-                onClick={() => review("hard")}
-                disabled={loading}
-              >
-                Hard
-              </button>
-              <button 
-                className="bg-blue-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-blue-600 transition text-sm sm:text-base"
-                onClick={() => review("good")}
-                disabled={loading}
-              >
-                Good
-              </button>
-              <button 
-                className="bg-green-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-green-700 transition text-sm sm:text-base"
-                onClick={() => review("easy")}
-                disabled={loading}
-              >
-                Easy
-              </button>
+                  <button
+                    className="bg-red-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-red-600 transition text-sm sm:text-base"
+                    onClick={() => review("again")}
+                    disabled={loading}
+                  >
+                    Again
+                  </button>
+                  <button
+                    className="bg-yellow-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-yellow-600 transition text-sm sm:text-base"
+                    onClick={() => review("hard")}
+                    disabled={loading}
+                  >
+                    Hard
+                  </button>
+                  <button
+                    className="bg-blue-500 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-blue-600 transition text-sm sm:text-base"
+                    onClick={() => review("good")}
+                    disabled={loading}
+                  >
+                    Good
+                  </button>
+                  <button
+                    className="bg-green-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded hover:bg-green-700 transition text-sm sm:text-base"
+                    onClick={() => review("easy")}
+                    disabled={loading}
+                  >
+                    Easy
+                  </button>
                 </div>
               </>
             )}
